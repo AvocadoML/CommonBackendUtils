@@ -29,6 +29,7 @@ namespace avocado
 					avDataType_t m_dtype = AVOCADO_DTYPE_UNKNOWN;
 				public:
 					static constexpr av_int64 descriptor_type = 3;
+					static constexpr bool must_check_device_index = false;
 
 					TensorDescriptor() = default;
 					TensorDescriptor(std::initializer_list<int> dimensions, avDataType_t dtype);
@@ -37,6 +38,7 @@ namespace avocado
 					static avTensorDescriptor_t create(std::initializer_list<int> dimensions, avDataType_t dtype);
 					static void destroy(avTensorDescriptor_t desc);
 					static TensorDescriptor& getObject(avTensorDescriptor_t desc);
+					static bool isValid(avTensorDescriptor_t desc);
 
 					void set(avDataType_t dtype, int nbDims, const int dimensions[]);
 					void get(avDataType_t *dtype, int *nbDims, int dimensions[]) const;

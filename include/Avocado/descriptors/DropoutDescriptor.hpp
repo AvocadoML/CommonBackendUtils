@@ -24,11 +24,13 @@ namespace avocado
 			{
 				public:
 					static constexpr av_int64 descriptor_type = 7;
+					static constexpr bool must_check_device_index = false;
 
 					static std::string className();
 					static avDropoutDescriptor_t create();
 					static void destroy(avDropoutDescriptor_t desc);
 					static DropoutDescriptor& getObject(avDropoutDescriptor_t desc);
+					static bool isValid(avDropoutDescriptor_t desc);
 
 			};
 		} /* BACKEND_NAMESPACE */

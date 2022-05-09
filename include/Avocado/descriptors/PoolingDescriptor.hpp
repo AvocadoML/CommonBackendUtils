@@ -24,6 +24,8 @@ namespace avocado
 			{
 				public:
 					static constexpr av_int64 descriptor_type = 5;
+					static constexpr bool must_check_device_index = false;
+
 					avPoolingMode_t mode = AVOCADO_POOLING_MAX;
 					std::array<int, 3> filter;
 					std::array<int, 3> padding;
@@ -33,6 +35,7 @@ namespace avocado
 					static avPoolingDescriptor_t create();
 					static void destroy(avPoolingDescriptor_t desc);
 					static PoolingDescriptor& getObject(avPoolingDescriptor_t desc);
+					static bool isValid(avPoolingDescriptor_t desc);
 
 			};
 		} /* BACKEND_NAMESPACE */

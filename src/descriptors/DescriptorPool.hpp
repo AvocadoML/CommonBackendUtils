@@ -52,10 +52,6 @@ namespace avocado
 						std::swap(this->m_available_descriptors, other.m_available_descriptors);
 						return *this;
 					}
-					~DescriptorPool()
-					{
-						std::cout << "destroying DescriptorPool<" << T::className() << ">\n";
-					}
 
 					/**
 					 * \brief Checks if the passed descriptor is valid.
@@ -63,35 +59,7 @@ namespace avocado
 					 */
 					bool isValid(int64_t desc) const noexcept
 					{
-//						std::cout << __FUNCTION__ << "() " << __LINE__ << " : index = " << desc << '\n';
-//						std::cout << __FUNCTION__ << "() " << __LINE__ << " : device type = " << get_current_device_type() << '\n';
-						if (getCurrentDeviceType() != getDeviceType(desc))
-						{
-//							std::cout << __FUNCTION__ << "() " << __LINE__ << " : device type mismatch : " << get_current_device_type() << " vs "
-//									<< get_device_type(desc) << std::endl;
-							return false;
-						}
-						if (T::descriptor_type != getDescriptorType(desc))
-						{
-//							std::cout << __FUNCTION__ << "() " << __LINE__ << " : type mismatch : " << T::descriptor_type << " vs "
-//									<< get_descriptor_type(desc) << std::endl;
-							return false;
-						}
-
-						int index = getDescriptorIndex(desc);
-//						std::cout << __FUNCTION__ << "() " << __LINE__ << " object index = " << index << '\n';
-						if (index < 0 or index > static_cast<int>(m_pool.size()))
-						{
-//							std::cout << __FUNCTION__ << "() " << __LINE__ << " : out of bounds : " << index << " vs 0:" << m_pool.size()
-//									<< std::endl;
-							return false;
-						}
-						bool asdf = std::find(m_available_descriptors.begin(), m_available_descriptors.end(), index) == m_available_descriptors.end();
-						if (asdf == false)
-						{
-//							std::cout << "not in available" << std::endl;
-						}
-						return asdf;
+						return check_validity(desc) == 1;
 					}
 
 					T& get(av_int64 desc)
@@ -106,8 +74,9 @@ namespace avocado
 							if (isValid(desc))
 								return m_pool.at(getDescriptorIndex(desc));
 							else
-								throw std::logic_error("invalid descriptor " + std::to_string(desc) + " for pool type '" + T::className() + "'");
+								throw_on_invalid_descriptor(desc);
 						}
+						throw std::runtime_error("");
 					}
 
 					template<typename ... Args>
@@ -129,20 +98,59 @@ namespace avocado
 						m_pool.at(index) = T(std::forward<Args>(args)...);
 
 						av_int64 descriptor = createDescriptor(index, T::descriptor_type);
-//						std::cout << __FUNCTION__ << "() " << __LINE__ << " : " << T::className() << " = " << tmp << ", object index = " << result
-//								<< std::endl;
 						return descriptor;
 					}
 					void destroy(av_int64 desc)
 					{
 						std::unique_lock lock(m_pool_mutex);
-//						std::cout << __FUNCTION__ << "() " << __LINE__ << " : " << T::className() << " = " << desc << std::endl;
 						if (not isValid(desc))
-							throw std::logic_error("invalid descriptor " + std::to_string(desc) + " of type '" + T::className() + "'");
+							throw_on_invalid_descriptor(desc);
 						int index = getDescriptorIndex(desc);
-//						std::cout << __FUNCTION__ << "() " << __LINE__ << " object index = " << index << std::endl;
 						m_pool.at(index) = T();
 						m_available_descriptors.push_back(index);
+					}
+				private:
+					int check_validity(int64_t desc) const noexcept
+					{
+						if (T::descriptor_type != getDescriptorType(desc))
+							return -1; // descriptor type mismatch
+						if (getCurrentDeviceType() != getDeviceType(desc))
+							return -2; // device type mismatch
+						if (T::must_check_device_index and getCurrentDeviceIndex() != getDeviceIndex(desc))
+							return -3; // device index mismatch
+
+						int index = getDescriptorIndex(desc);
+						if (index < 0 or index > static_cast<int>(m_pool.size()))
+							return -4; // descriptor index out of range
+						if (std::find(m_available_descriptors.begin(), m_available_descriptors.end(), index) != m_available_descriptors.end())
+							return -5; // descriptor not in use
+						return true;
+					}
+					void throw_on_invalid_descriptor(int64_t desc)
+					{
+						int tmp = check_validity(desc);
+						switch (tmp)
+						{
+							case -1:
+								throw std::logic_error(
+										"descriptor type mismatch, expected " + T::className() + ", got " + descriptorTypeToString(desc));
+							case -2:
+								throw std::logic_error(
+										"device type mismatch, expected " + deviceTypeToString(getCurrentDeviceType()) + ", got "
+												+ deviceTypeToString(getDeviceType(desc)));
+							case -3:
+								throw std::logic_error(
+										"device index mismatch, expected " + std::to_string(getCurrentDeviceIndex()) + ", got "
+												+ std::to_string(getDeviceIndex(desc)));
+							case -4:
+								throw std::logic_error(
+										"descriptor index " + std::to_string(getDescriptorIndex(desc)) + " out of range [0,"
+												+ std::to_string(m_pool.size()) + ")");
+							case -5:
+								throw std::logic_error("descriptor is not used");
+							default:
+								break;
+						}
 					}
 			};
 

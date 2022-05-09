@@ -46,6 +46,10 @@ namespace avocado
 			{
 				return tensor_descriptor_pool.get(desc);
 			}
+			bool TensorDescriptor::isValid(avTensorDescriptor_t desc)
+			{
+				return tensor_descriptor_pool.isValid(desc);
+			}
 			void TensorDescriptor::set(avDataType_t dtype, int nbDims, const int dimensions[])
 			{
 				if (nbDims < 0 or nbDims > AVOCADO_MAX_TENSOR_DIMENSIONS)
@@ -172,7 +176,7 @@ namespace avocado
 						result += ", ";
 					result += std::to_string(m_dimensions[i]);
 				}
-				result += "] on " + deviceTypeToString();
+				result += "] on " + deviceTypeToString(getCurrentDeviceType());
 				return result;
 			}
 			/*

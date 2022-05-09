@@ -25,6 +25,7 @@ namespace avocado
 			{
 				public:
 					static constexpr av_int64 descriptor_type = 6;
+					static constexpr bool must_check_device_index = false;
 
 					avOptimizerType_t type = AVOCADO_OPTIMIZER_SGD;
 					int64_t steps = 0;
@@ -38,6 +39,7 @@ namespace avocado
 					static avOptimizerDescriptor_t create();
 					static void destroy(avOptimizerDescriptor_t desc);
 					static OptimizerDescriptor& getObject(avOptimizerDescriptor_t desc);
+					static bool isValid(avOptimizerDescriptor_t desc);
 
 					void set(avOptimizerType_t optimizerType, av_int64 steps, double learningRate, const double coefficients[], const bool flags[]);
 					void get(avOptimizerType_t *optimizerType, av_int64 *steps, double *learningRate, double coefficients[], bool flags[]);

@@ -27,6 +27,7 @@ namespace avocado
 			{
 				public:
 					static constexpr av_int64 descriptor_type = 4;
+					static constexpr bool must_check_device_index = false;
 
 					avConvolutionMode_t mode = AVOCADO_CONVOLUTION_MODE;
 					int dimensions = 2;
@@ -42,6 +43,7 @@ namespace avocado
 					static avConvolutionDescriptor_t create();
 					static void destroy(avConvolutionDescriptor_t desc);
 					static ConvolutionDescriptor& getObject(avConvolutionDescriptor_t desc);
+					static bool isValid(avConvolutionDescriptor_t desc);
 
 					void set(avConvolutionMode_t mode, int nbDims, const int padding[], const int strides[], const int dilation[], int groups,
 							const void *paddingValue);

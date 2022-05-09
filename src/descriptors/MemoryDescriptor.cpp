@@ -158,6 +158,10 @@ namespace avocado
 			{
 				return memory_descriptor_pool.get(desc);
 			}
+			bool MemoryDescriptor::isValid(avMemoryDescriptor_t desc)
+			{
+				return memory_descriptor_pool.isValid(desc);
+			}
 
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */

@@ -38,6 +38,7 @@ namespace avocado
 					bool m_is_owning = false;
 				public:
 					static constexpr av_int64 descriptor_type = 1;
+					static constexpr bool must_check_device_index = true;
 
 					MemoryDescriptor() = default;
 					MemoryDescriptor(av_int64 sizeInBytes, avDeviceIndex_t deviceIndex);
@@ -68,6 +69,7 @@ namespace avocado
 					 * \brief Returns reference to the object behind the descriptor.
 					 */
 					static MemoryDescriptor& getObject(avMemoryDescriptor_t desc);
+					static bool isValid(avMemoryDescriptor_t desc);
 
 #ifdef OPENCL_BACKEND
 //					cl::Buffer& data(void *ptr) noexcept;
@@ -86,6 +88,12 @@ namespace avocado
 					}
 #endif
 			};
+
+			template<typename T = void>
+			T* getPointer(avMemoryDescriptor_t desc)
+			{
+				return MemoryDescriptor::getObject(desc).data<T>();
+			}
 
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */

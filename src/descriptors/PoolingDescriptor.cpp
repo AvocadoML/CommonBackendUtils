@@ -36,6 +36,10 @@ namespace avocado
 			{
 				return pooling_descriptor_pool.get(desc);
 			}
+			bool PoolingDescriptor::isValid(avPoolingDescriptor_t desc)
+			{
+				return pooling_descriptor_pool.isValid(desc);
+			}
 
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */

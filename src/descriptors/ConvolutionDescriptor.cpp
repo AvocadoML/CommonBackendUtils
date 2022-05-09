@@ -44,6 +44,10 @@ namespace avocado
 			{
 				return convolution_descriptor_pool.get(desc);
 			}
+			bool ConvolutionDescriptor::isValid(avConvolutionDescriptor_t desc)
+			{
+				return convolution_descriptor_pool.isValid(desc);
+			}
 			void ConvolutionDescriptor::set(avConvolutionMode_t mode, int nbDims, const int padding[], const int strides[], const int dilation[],
 					int groups, const void *paddingValue)
 			{

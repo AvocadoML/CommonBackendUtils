@@ -170,6 +170,13 @@ namespace avocado
 				else
 					return context_descriptor_pool.get(desc);
 			}
+			bool ContextDescriptor::isValid(avContextDescriptor_t desc)
+			{
+				if (isDefault(desc))
+					return default_context_descriptor_pool.isValid(desc);
+				else
+					return context_descriptor_pool.isValid(desc);
+			}
 
 			MemoryDescriptor& ContextDescriptor::getWorkspace() const
 			{

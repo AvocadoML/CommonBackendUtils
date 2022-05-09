@@ -36,6 +36,10 @@ namespace avocado
 			{
 				return dropout_descriptor_pool.get(desc);
 			}
+			bool DropoutDescriptor::isValid(avDropoutDescriptor_t desc)
+			{
+				return dropout_descriptor_pool.isValid(desc);
+			}
 
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */

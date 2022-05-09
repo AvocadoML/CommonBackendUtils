@@ -43,6 +43,10 @@ namespace avocado
 			{
 				return optimizer_descriptor_pool.get(desc);
 			}
+			bool OptimizerDescriptor::isValid(avOptimizerDescriptor_t desc)
+			{
+				return optimizer_descriptor_pool.isValid(desc);
+			}
 			void OptimizerDescriptor::set(avOptimizerType_t optimizerType, av_int64 steps, double learningRate, const double coefficients[],
 					const bool flags[])
 			{

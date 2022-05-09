@@ -6,6 +6,15 @@
  */
 
 #include <Avocado/backend_utils.hpp>
+#include <Avocado/descriptors/ContextDescriptor.hpp>
+#include <Avocado/descriptors/ConvolutionDescriptor.hpp>
+#include <Avocado/descriptors/DropoutDescriptor.hpp>
+#include <Avocado/descriptors/MemoryDescriptor.hpp>
+#include <Avocado/descriptors/OptimizerDescriptor.hpp>
+#include <Avocado/descriptors/PoolingDescriptor.hpp>
+#include <Avocado/descriptors/TensorDescriptor.hpp>
+
+#include <algorithm>
 
 #if defined(CPU_BACKEND)
 #elif defined(CUDA_BACKEND)
@@ -23,6 +32,80 @@ namespace avocado
 	{
 		namespace BACKEND_NAMESPACE
 		{
+			std::string descriptorTypeToString(av_int64 desc)
+			{
+				switch (getDescriptorType(desc))
+				{
+					case MemoryDescriptor::descriptor_type:
+						return "MemoryDescriptor";
+					case ContextDescriptor::descriptor_type:
+						return "ContextDescriptor";
+					case TensorDescriptor::descriptor_type:
+						return "TensorDescriptor";
+					case ConvolutionDescriptor::descriptor_type:
+						return "ConvolutionDescriptor";
+					case PoolingDescriptor::descriptor_type:
+						return "PoolingDescriptor";
+					case OptimizerDescriptor::descriptor_type:
+						return "OptimizerDescriptor";
+					case DropoutDescriptor::descriptor_type:
+						return "DropoutDescriptor";
+					default:
+						return "incorrect type (" + std::to_string(getDescriptorType(desc)) + ")";
+				}
+			}
+			std::string descriptorToString(av_int64 desc)
+			{
+				std::string result = std::to_string(desc) + " : ";
+				if (desc < 0)
+					return result + "invalid (negative)";
+				result += descriptorTypeToString(desc) + " on ";
+				switch (getDeviceType(desc))
+				{
+					case AVOCADO_DEVICE_CPU:
+						result += "CPU";
+						break;
+					case AVOCADO_DEVICE_CUDA:
+						result += "CUDA:" + std::to_string(getCurrentDeviceIndex());
+						break;
+					case AVOCADO_DEVICE_OPENCL:
+						result += "OPENCL:" + std::to_string(getCurrentDeviceIndex());
+						break;
+					default:
+						return result + " unknown device type";
+				}
+				return result + ", ID = " + std::to_string(getDescriptorIndex(desc));
+			}
+			std::string statusToString(avStatus_t status)
+			{
+				switch (status)
+				{
+					case AVOCADO_STATUS_SUCCESS:
+						return "SUCCESS";
+					case AVOCADO_STATUS_ALLOC_FAILED:
+						return "ALLOC_FAILED";
+					case AVOCADO_STATUS_FREE_FAILED:
+						return "FREE_FAILED";
+					case AVOCADO_STATUS_BAD_PARAM:
+						return "BAD_PARAM";
+					case AVOCADO_STATUS_ARCH_MISMATCH:
+						return "ARCH_MISMATCH";
+					case AVOCADO_STATUS_INTERNAL_ERROR:
+						return "INTERNAL_ERROR";
+					case AVOCADO_STATUS_NOT_SUPPORTED:
+						return "NOT_SUPPORTED";
+					case AVOCADO_STATUS_UNSUPPORTED_DATATYPE:
+						return "UNSUPPORTED_DATATYPE";
+					case AVOCADO_STATUS_EXECUTION_FAILED:
+						return "EXECUTION_FAILED";
+					case AVOCADO_STATUS_INSUFFICIENT_DRIVER:
+						return "INSUFFICIENT_DRIVER";
+					case AVOCADO_STATUS_DEVICE_TYPE_MISMATCH:
+						return "DEVICE_TYPE_MISMATCH";
+					default:
+						return "UNKNOWN_STATUS";
+				}
+			}
 			std::string dtypeToString(avDataType_t dtype)
 			{
 				switch (dtype)
@@ -54,17 +137,19 @@ namespace avocado
 						return "COMPLEX64";
 				}
 			}
-			std::string deviceTypeToString()
+			std::string deviceTypeToString(avDeviceType_t type)
 			{
-#if defined(CPU_BACKEND)
-				return "CPU";
-#elif defined(CUDA_BACKEND)
-				return "CUDA";
-#elif defined(OPENCL_BACKEND)
-				return "OPENCL";
-#else
-				return "reference";
-#endif
+				switch (type)
+				{
+					case AVOCADO_DEVICE_CPU:
+						return "CPU";
+					case AVOCADO_DEVICE_CUDA:
+						return "CUDA";
+					case AVOCADO_DEVICE_OPENCL:
+						return "OPENCL";
+					default:
+						return "reference";
+				}
 			}
 
 			int getNumberOfDevices() noexcept
@@ -108,19 +193,30 @@ namespace avocado
 				return static_cast<int>(descriptor & descriptor_index_mask);
 			}
 
-			av_int64 getCurrentDeviceType() noexcept
+			avDeviceType_t getCurrentDeviceType() noexcept
 			{
 #if defined(CUDA_BACKEND)
-				return static_cast<av_int64>(AVOCADO_DEVICE_CUDA);
+				return AVOCADO_DEVICE_CUDA;
 #elif defined(OPENCL_BACKEND)
-				return static_cast<av_int64>(AVOCADO_DEVICE_OPENCL);
+				return AVOCADO_DEVICE_OPENCL;
 #else
-				return static_cast<av_int64>(AVOCADO_DEVICE_CPU);
+				return AVOCADO_DEVICE_CPU;
 #endif
 			}
 			av_int64 getCurrentDeviceIndex() noexcept
 			{
+#if defined(CUDA_BACKEND)
+				int tmp = 0;
+				cudaError_t status = cudaGetCurrentDevice(&tmp);
+				if (status != cudaSuccess)
+					return 0;
+				else
+					return tmp;
+#elif defined(OPENCL_BACKEND)
 				return 0;
+#else
+				return 0;
+#endif
 			}
 
 			av_int64 createDescriptor(int index, av_int64 type) noexcept
@@ -159,6 +255,41 @@ namespace avocado
 					case AVOCADO_DTYPE_COMPLEX64:
 						return 16;
 				}
+			}
+
+			bool is_transpose(avGemmOperation_t op) noexcept
+			{
+				return op == AVOCADO_GEMM_OPERATION_T;
+			}
+			bool is_logical(avBinaryOp_t op) noexcept
+			{
+				return (op == AVOCADO_BINARY_OP_LOGICAL_AND) or (op == AVOCADO_BINARY_OP_LOGICAL_OR) or (op == AVOCADO_BINARY_OP_LOGICAL_OR);
+			}
+			bool is_logical(avUnaryOp_t op) noexcept
+			{
+				return op == AVOCADO_UNARY_OP_LOGICAL_NOT;
+			}
+			bool is_logical(avReduceOp_t op) noexcept
+			{
+				return (op == AVOCADO_REDUCE_LOGICAL_AND) or (op == AVOCADO_REDUCE_LOGICAL_OR);
+			}
+
+			thread_local ErrorDescription last_error;
+
+			std::string ErrorDescription::toString() const
+			{
+				return statusToString(status) + " : in function '" + method_name + "' : '" + message + "'";
+			}
+			ErrorDescription getLastError()
+			{
+				ErrorDescription result;
+				std::swap(result, last_error);
+				return result;
+			}
+			avStatus_t reportError(avStatus_t status, const char *method, const std::string &msg)
+			{
+				last_error = ErrorDescription { status, std::string(method), msg };
+				return status;
 			}
 		}
 	} /* namespace backend */

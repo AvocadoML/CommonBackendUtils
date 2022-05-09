@@ -45,6 +45,7 @@ namespace avocado
 					mutable av_int64 m_workspace_size = 0;
 				public:
 					static constexpr av_int64 descriptor_type = 2;
+					static constexpr bool must_check_device_index = true;
 
 					ContextDescriptor() = default;
 #if defined(CUDA_BACKEND)
@@ -67,6 +68,7 @@ namespace avocado
 #endif
 					static void destroy(avContextDescriptor_t desc);
 					static ContextDescriptor& getObject(avContextDescriptor_t desc);
+					static bool isValid(avContextDescriptor_t desc);
 
 					MemoryDescriptor& getWorkspace() const;
 #ifdef CUDA_BACKEND

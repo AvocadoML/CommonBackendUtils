@@ -29,8 +29,10 @@ namespace avocado
 	{
 		namespace BACKEND_NAMESPACE
 		{
+			std::string descriptorTypeToString(av_int64 desc);
+			std::string statusToString(avStatus_t status);
 			std::string dtypeToString(avDataType_t dtype);
-			std::string deviceTypeToString();
+			std::string deviceTypeToString(avDeviceType_t type);
 
 			int getNumberOfDevices() noexcept;
 			avDeviceType_t getDeviceType(av_int64 descriptor) noexcept;
@@ -38,7 +40,7 @@ namespace avocado
 			avDeviceIndex_t getDeviceIndex(av_int64 descriptor) noexcept;
 			int getDescriptorIndex(av_int64 descriptor) noexcept;
 
-			av_int64 getCurrentDeviceType() noexcept;
+			avDeviceType_t getCurrentDeviceType() noexcept;
 			av_int64 getCurrentDeviceIndex() noexcept;
 
 			av_int64 createDescriptor(int index, av_int64 type) noexcept;
@@ -108,6 +110,52 @@ namespace avocado
 					return same_device_type(lhs, args...);
 				else
 					return false;
+			}
+
+			struct ErrorDescription
+			{
+					avStatus_t status = AVOCADO_STATUS_SUCCESS;
+					std::string method_name;
+					std::string message;
+
+					std::string toString() const;
+			};
+
+			ErrorDescription getLastError();
+			avStatus_t reportError(avStatus_t status, const char *method, const std::string &msg);
+#ifdef __GNUC__
+#  define REPORT_ERROR(status, message) reportError((status), __PRETTY_FUNCTION__, (message))
+#else
+#  define REPORT_ERROR(status, message) reportError((status), __FUNCTION__, (message))
+#endif
+
+			template<typename T, typename U, typename ... Args>
+			avStatus_t create_descriptor(U *result, Args &&... args)
+			{
+				if (result == nullptr)
+					return REPORT_ERROR(AVOCADO_STATUS_BAD_PARAM, "result is null");
+				try
+				{
+					result[0] = T::create(std::forward<Args>(args)...);
+					return AVOCADO_STATUS_SUCCESS;
+				} catch (std::exception &e)
+				{
+					return REPORT_ERROR(AVOCADO_STATUS_INTERNAL_ERROR, e.what());
+				}
+			}
+			template<typename T, typename U>
+			avStatus_t destroy_descriptor(T desc)
+			{
+				if (T::isValid(desc) == false)
+					return REPORT_ERROR(AVOCADO_STATUS_BAD_PARAM, "descriptor is invalid");
+				try
+				{
+					T::destroy(desc);
+					return AVOCADO_STATUS_SUCCESS;
+				} catch (std::exception &e)
+				{
+					return REPORT_ERROR(AVOCADO_STATUS_FREE_FAILED, e.what());
+				}
 			}
 		}
 	} /* namespace backend */
