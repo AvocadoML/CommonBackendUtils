@@ -11,6 +11,33 @@
 #include <algorithm>
 #include <cstring>
 
+namespace
+{
+	using namespace avocado::backend;
+	template<typename T>
+	std::array<int, AVOCADO_MAX_TENSOR_DIMENSIONS> get_shape(T begin, T end)
+	{
+		std::array<int, AVOCADO_MAX_TENSOR_DIMENSIONS> result;
+		auto iter = std::copy(begin, end, result.begin());
+		std::fill(iter, result.end(), 0);
+		return result;
+	}
+	template<typename T>
+	std::array<int, AVOCADO_MAX_TENSOR_DIMENSIONS> get_strides(T begin, T end)
+	{
+		std::array<int, AVOCADO_MAX_TENSOR_DIMENSIONS> result;
+		result.fill(0);
+		int nb_dims = std::distance(begin, end);
+		if (nb_dims > 0)
+		{
+			result[nb_dims - 1] = 1;
+			for (int i = nb_dims - 2; i >= 0; i--)
+				result[i] = result[i + 1] * begin[i + 1];
+		}
+		return result;
+	}
+}
+
 namespace avocado
 {
 	namespace backend
@@ -21,13 +48,18 @@ namespace avocado
 			static DescriptorPool<TensorDescriptor> tensor_descriptor_pool;
 
 			TensorDescriptor::TensorDescriptor(std::initializer_list<int> dimensions, avDataType_t dtype) :
+					m_dimensions(get_shape(dimensions.begin(), dimensions.end())),
+					m_strides(get_strides(dimensions.begin(), dimensions.end())),
 					m_number_of_dimensions(dimensions.size()),
 					m_dtype(dtype)
 			{
-				m_dimensions.fill(0);
-				m_strides.fill(0);
-				std::memcpy(m_dimensions.data(), dimensions.begin(), sizeof(int) * dimensions.size());
-				setup_stride();
+			}
+			TensorDescriptor::TensorDescriptor(std::initializer_list<int> dimensions, std::initializer_list<int> strides, avDataType_t dtype) :
+					m_dimensions(get_shape(dimensions.begin(), dimensions.end())),
+					m_strides(get_shape(strides.begin(), strides.end())),
+					m_number_of_dimensions(dimensions.size()),
+					m_dtype(dtype)
+			{
 			}
 			std::string TensorDescriptor::className()
 			{
@@ -37,6 +69,11 @@ namespace avocado
 			avTensorDescriptor_t TensorDescriptor::create(std::initializer_list<int> dimensions, avDataType_t dtype)
 			{
 				return tensor_descriptor_pool.create(dimensions, dtype);
+			}
+			avTensorDescriptor_t TensorDescriptor::create(std::initializer_list<int> dimensions, std::initializer_list<int> strides,
+					avDataType_t dtype)
+			{
+				return tensor_descriptor_pool.create(dimensions, strides, dtype);
 			}
 			void TensorDescriptor::destroy(avTensorDescriptor_t desc)
 			{
@@ -61,7 +98,7 @@ namespace avocado
 					std::memcpy(m_dimensions.data(), dimensions, sizeof(int) * nbDims);
 				m_number_of_dimensions = nbDims;
 				m_dtype = dtype;
-				setup_stride();
+				m_strides = get_strides(dimensions, dimensions + nbDims);
 			}
 			void TensorDescriptor::get(avDataType_t *dtype, int *nbDims, int dimensions[]) const
 			{
@@ -178,18 +215,6 @@ namespace avocado
 				}
 				result += "] on " + deviceTypeToString(getCurrentDeviceType());
 				return result;
-			}
-			/*
-			 * private
-			 */
-			void TensorDescriptor::setup_stride()
-			{
-				int tmp = 1;
-				for (int i = m_number_of_dimensions - 1; i >= 0; i--)
-				{
-					m_strides[i] = tmp;
-					tmp *= this->dimension(i);
-				}
 			}
 
 		} /* BACKEND_NAMESPACE */

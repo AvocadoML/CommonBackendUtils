@@ -33,9 +33,11 @@ namespace avocado
 
 					TensorDescriptor() = default;
 					TensorDescriptor(std::initializer_list<int> dimensions, avDataType_t dtype);
+					TensorDescriptor(std::initializer_list<int> dimensions, std::initializer_list<int> strides, avDataType_t dtype);
 					static std::string className();
 
 					static avTensorDescriptor_t create(std::initializer_list<int> dimensions, avDataType_t dtype);
+					static avTensorDescriptor_t create(std::initializer_list<int> dimensions, std::initializer_list<int> strides, avDataType_t dtype);
 					static void destroy(avTensorDescriptor_t desc);
 					static TensorDescriptor& getObject(avTensorDescriptor_t desc);
 					static bool isValid(avTensorDescriptor_t desc);
@@ -58,8 +60,6 @@ namespace avocado
 
 					bool equalShape(const TensorDescriptor &other) noexcept;
 					std::string toString() const;
-				private:
-					void setup_stride();
 			};
 
 			/**
