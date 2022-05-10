@@ -278,7 +278,10 @@ namespace avocado
 
 			std::string ErrorDescription::toString() const
 			{
-				return statusToString(status) + " : in function '" + method_name + "' : '" + message + "'";
+				if (status == AVOCADO_STATUS_SUCCESS)
+					return statusToString(status);
+				else
+					return statusToString(status) + " : in function '" + method_name + "' : '" + message + "'";
 			}
 			ErrorDescription getLastError()
 			{

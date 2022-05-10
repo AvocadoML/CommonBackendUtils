@@ -84,7 +84,6 @@ namespace avocado
 			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultCommandQueue):
 					m_device_index(deviceIndex)
 			{
-
 			}
 #endif
 			ContextDescriptor::ContextDescriptor(ContextDescriptor &&other) :
@@ -119,7 +118,6 @@ namespace avocado
 			}
 			ContextDescriptor::~ContextDescriptor()
 			{
-//				std::cout << device_type() << " : destroying context " << this << '\n';
 #if defined(CPU_BACKEND)
 #elif defined(CUDA_BACKEND)
 				cudaError_t err = cudaDeviceSynchronize();
@@ -143,25 +141,20 @@ namespace avocado
 			{
 				return "ContextDescriptor";
 			}
-#if defined(CUDA_BACKEND)
-			avContextDescriptor_t ContextDescriptor::create(avDeviceIndex_t deviceIndex, bool useDefaultStream)
+			avContextDescriptor_t ContextDescriptor::create(avDeviceIndex_t deviceIndex)
 			{
-				return context_descriptor_pool.create(deviceIndex, useDefaultStream);
-			}
-#elif defined(OPENCL_BACKEND)
-			avContextDescriptor_t ContextDescriptor::create(avDeviceIndex_t deviceIndex, bool useDefaultCommandQueue)
-			{
-				return context_descriptor_pool.create(deviceIndex, useDefaultCommandQueue);
-			}
+#if defined(CUDA_BACKEND) or defined(OPENCL_BACKEND)
+				return context_descriptor_pool.create(deviceIndex, false);
 #else
-			avContextDescriptor_t ContextDescriptor::create()
-			{
 				return context_descriptor_pool.create();
-			}
 #endif
+			}
 			void ContextDescriptor::destroy(avContextDescriptor_t desc)
 			{
-				context_descriptor_pool.destroy(desc);
+				if (isDefault(desc))
+					throw std::logic_error("Default context descriptor cannot be destroyed");
+				else
+					context_descriptor_pool.destroy(desc);
 			}
 			ContextDescriptor& ContextDescriptor::getObject(avContextDescriptor_t desc)
 			{

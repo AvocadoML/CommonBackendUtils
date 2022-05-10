@@ -59,13 +59,7 @@ namespace avocado
 					ContextDescriptor& operator=(ContextDescriptor &&other);
 					~ContextDescriptor();
 					static std::string className();
-#if defined(CUDA_BACKEND)
-					static avContextDescriptor_t create(avDeviceIndex_t deviceIndex, bool useDefaultStream = false);
-#elif defined(OPENCL_BACKEND)
-					static avContextDescriptor_t create(avDeviceIndex_t deviceIndex, bool useDefaultCommandQueue);
-#else
-					static avContextDescriptor_t create();
-#endif
+					static avContextDescriptor_t create(avDeviceIndex_t deviceIndex);
 					static void destroy(avContextDescriptor_t desc);
 					static ContextDescriptor& getObject(avContextDescriptor_t desc);
 					static bool isValid(avContextDescriptor_t desc);

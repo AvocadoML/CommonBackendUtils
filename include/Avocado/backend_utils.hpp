@@ -113,6 +113,23 @@ namespace avocado
 					return false;
 			}
 
+			class InvalidDescriptorError: std::logic_error
+			{
+				public:
+					InvalidDescriptorError(const std::string &msg) :
+							std::logic_error(msg)
+					{
+					}
+			};
+			class DeallocationError: std::runtime_error
+			{
+				public:
+					DeallocationError(const std::string &msg) :
+							std::runtime_error(msg)
+					{
+					}
+			};
+
 			struct ErrorDescription
 			{
 					avStatus_t status = AVOCADO_STATUS_SUCCESS;
@@ -162,10 +179,10 @@ namespace avocado
 				{
 					T::destroy(desc);
 					return AVOCADO_STATUS_SUCCESS;
-				} catch (std::runtime_error &e)
+				} catch (DeallocationError &e)
 				{
 					return REPORT_ERROR(AVOCADO_STATUS_FREE_FAILED, e.what());
-				} catch (std::logic_error &e)
+				} catch (InvalidDescriptorError &e)
 				{
 					return REPORT_ERROR(AVOCADO_STATUS_BAD_PARAM, e.what());
 				} catch (std::exception &e)
