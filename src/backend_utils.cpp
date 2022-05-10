@@ -286,6 +286,10 @@ namespace avocado
 				std::swap(result, last_error);
 				return result;
 			}
+			ErrorDescription peekLastError()
+			{
+				return last_error;
+			}
 			avStatus_t reportError(avStatus_t status, const char *method, const std::string &msg)
 			{
 				last_error = ErrorDescription { status, std::string(method), msg };

@@ -122,8 +122,19 @@ namespace avocado
 					std::string toString() const;
 			};
 
+			/*
+			 * \brief Returns last error description and resets internal storage for errors.
+			 */
 			ErrorDescription getLastError();
+			/*
+			 * \brief Returns last error description without resetting the internal storage for errors.
+			 */
+			ErrorDescription peekLastError();
+			/*
+			 * \brief Registers an error with its description.
+			 */
 			avStatus_t reportError(avStatus_t status, const char *method, const std::string &msg);
+
 #ifdef __GNUC__
 #  define REPORT_ERROR(status, message) reportError((status), __PRETTY_FUNCTION__, (message))
 #else
