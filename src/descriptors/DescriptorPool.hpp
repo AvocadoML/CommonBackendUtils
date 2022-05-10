@@ -32,7 +32,7 @@ namespace avocado
 					T m_null_descriptor;
 					std::vector<T> m_pool;
 					std::vector<int> m_available_descriptors;
-					std::shared_mutex m_pool_mutex;
+					mutable std::shared_mutex m_pool_mutex;
 				public:
 					DescriptorPool(size_t initialSize = 10, int numRestricted = 0)
 					{
@@ -137,6 +137,7 @@ namespace avocado
 				private:
 					int check_validity(int64_t desc) const noexcept
 					{
+						std::shared_lock lock(m_pool_mutex);
 						if (T::descriptor_type != getDescriptorType(desc))
 							return -1; // descriptor type mismatch
 						if (getCurrentDeviceType() != getDeviceType(desc))
