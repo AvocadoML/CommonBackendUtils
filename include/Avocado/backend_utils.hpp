@@ -11,6 +11,7 @@
 #include "backend_defs.h"
 
 #include <cassert>
+#include <stdexcept>
 #include <string>
 
 #if defined(CPU_BACKEND)
@@ -146,15 +147,19 @@ namespace avocado
 			template<typename T, typename U>
 			avStatus_t destroy_descriptor(T desc)
 			{
-				if (T::isValid(desc) == false)
-					return REPORT_ERROR(AVOCADO_STATUS_BAD_PARAM, "descriptor is invalid");
 				try
 				{
 					T::destroy(desc);
 					return AVOCADO_STATUS_SUCCESS;
-				} catch (std::exception &e)
+				} catch (std::runtime_error &e)
 				{
 					return REPORT_ERROR(AVOCADO_STATUS_FREE_FAILED, e.what());
+				} catch (std::logic_error &e)
+				{
+					return REPORT_ERROR(AVOCADO_STATUS_BAD_PARAM, e.what());
+				} catch (std::exception &e)
+				{
+					return REPORT_ERROR(AVOCADO_STATUS_INTERNAL_ERROR, e.what());
 				}
 			}
 		}
