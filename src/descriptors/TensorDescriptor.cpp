@@ -111,15 +111,23 @@ namespace avocado
 			}
 			int& TensorDescriptor::operator[](int index)
 			{
+				assert(index >= 0 && index < m_number_of_dimensions);
 				return m_dimensions[index];
 			}
 			int TensorDescriptor::operator[](int index) const
 			{
+				assert(index >= 0 && index < m_number_of_dimensions);
 				return m_dimensions[index];
 			}
 			int TensorDescriptor::dimension(int index) const
 			{
+				assert(index >= 0 && index < m_number_of_dimensions);
 				return m_dimensions[index];
+			}
+			int TensorDescriptor::stride(int index) const
+			{
+				assert(index >= 0 && index < m_number_of_dimensions);
+				return m_strides[index];
 			}
 			int TensorDescriptor::nbDims() const noexcept
 			{
@@ -214,6 +222,32 @@ namespace avocado
 					result += std::to_string(m_dimensions[i]);
 				}
 				result += "] on " + deviceTypeToString(getCurrentDeviceType());
+				return result;
+			}
+
+			bool isBroadcastPossible(const TensorDescriptor &lhs, const TensorDescriptor &rhs) noexcept
+			{
+				if (lhs.nbDims() < rhs.nbDims())
+					return false;
+				else
+				{
+					for (int i = 0, k = lhs.nbDims() - rhs.nbDims(); i < rhs.nbDims(); i++, k++)
+						if (lhs.dimension(k) != rhs.dimension(i) and rhs.dimension(i) != 1)
+							return false;
+					return true;
+				}
+			}
+			int volume(const BroadcastedDimensions &dims) noexcept
+			{
+				return dims.first * dims.last;
+			}
+			BroadcastedDimensions getBroadcastDimensions(const TensorDescriptor &lhs, const TensorDescriptor &rhs) noexcept
+			{
+				assert(isBroadcastPossible(lhs, rhs));
+				int lhs_volume = lhs.volume();
+				int rhs_volume = rhs.volume();
+				assert(lhs_volume > 0 && rhs_volume > 0);
+				BroadcastedDimensions result { lhs_volume / rhs_volume, rhs_volume };
 				return result;
 			}
 

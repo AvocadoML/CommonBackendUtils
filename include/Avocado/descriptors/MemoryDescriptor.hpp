@@ -15,7 +15,7 @@
 #include <string>
 
 #ifdef OPENCL_BACKEND
-#  include <CL/cl.hpp>
+#  include <CL/cl2.hpp>
 #endif
 
 namespace avocado
@@ -89,10 +89,18 @@ namespace avocado
 #endif
 			};
 
+			inline MemoryDescriptor& getMemory(avMemoryDescriptor_t desc)
+			{
+				return MemoryDescriptor::getObject(desc);
+			}
 			template<typename T = void>
 			T* getPointer(avMemoryDescriptor_t desc)
 			{
+#ifdef OPENCL_BACKEND
+				return nullptr; // TODO
+#else
 				return MemoryDescriptor::getObject(desc).data<T>();
+#endif
 			}
 
 		} /* BACKEND_NAMESPACE */

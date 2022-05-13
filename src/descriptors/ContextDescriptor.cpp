@@ -62,38 +62,36 @@ namespace avocado
 			}
 
 #if defined(CUDA_BACKEND)
-			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultStream):
+			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultStream) :
 					m_device_index(deviceIndex)
 			{
 				cudaError_t err = cudaSetDevice(deviceIndex);
-				CHECK_CUDA_ERROR(err, "ContextDescriptor::create() : cudaSetDevice()");
+				CHECK_CUDA_ERROR(err);
 				if (useDefaultStream)
 					m_stream = nullptr;
 				else
 				{
 					err = cudaStreamCreate(&m_stream);
-					CHECK_CUDA_ERROR(err, "ContextDescriptor::create() : cudaStreamCreate()");
+					CHECK_CUDA_ERROR(err);
 				}
 
 				cublasStatus_t status = cublasCreate_v2(&m_handle);
-				CHECK_CUBLAS_STATUS(status, "ContextDescriptor::create() : cublasCreate_v2()");
+				CHECK_CUBLAS_STATUS(status);
 				status = cublasSetStream_v2(m_handle, m_stream);
-				CHECK_CUBLAS_STATUS(status, "ContextDescriptor::create() : cublasSetStream_v2()");
+				CHECK_CUBLAS_STATUS(status);
 			}
 #elif defined(OPENCL_BACKEND)
 			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultCommandQueue):
-					m_device_index(deviceIndex)
+			m_device_index(deviceIndex)
 			{
 			}
 #endif
 			ContextDescriptor::ContextDescriptor(ContextDescriptor &&other) :
 #if defined(CUDA_BACKEND)
-					m_stream(other.m_stream), m_handle(other.m_handle),
+							m_stream(other.m_stream), m_handle(other.m_handle),
 #elif defined(OPENCL_BACKEND)
 #endif
-					m_device_index(other.m_device_index),
-					m_workspace(std::move(other.m_workspace)),
-					m_workspace_size(other.m_workspace_size)
+							m_device_index(other.m_device_index), m_workspace(std::move(other.m_workspace)), m_workspace_size(other.m_workspace_size)
 			{
 #if defined(CUDA_BACKEND)
 				other.m_stream = nullptr;
@@ -121,17 +119,17 @@ namespace avocado
 #if defined(CPU_BACKEND)
 #elif defined(CUDA_BACKEND)
 				cudaError_t err = cudaDeviceSynchronize();
-				CHECK_CUDA_ERROR(err, "ContextDescriptor::destroy() : cudaDeviceSynchronize()");
+				CHECK_CUDA_ERROR(err);
 				if (m_handle != nullptr)
 				{
 					cublasStatus_t status = cublasDestroy_v2(m_handle);
-					CHECK_CUBLAS_STATUS(status, "ContextDescriptor::destroy() : cublasDestroy_v2()");
+					CHECK_CUBLAS_STATUS(status);
 				}
 
 				if (m_stream != nullptr)
 				{
 					err = cudaStreamDestroy(m_stream);
-					CHECK_CUDA_ERROR(err, "ContextDescriptor::destroy() : cudaStreamDestroy()");
+					CHECK_CUDA_ERROR(err);
 				}
 #elif defined(OPENCL_BACKEND)
 #else
@@ -184,7 +182,7 @@ namespace avocado
 			void ContextDescriptor::setDevice() const
 			{
 				cudaError_t err = cudaSetDevice(m_device_index);
-				CHECK_CUDA_ERROR(err, "ContextDescriptor::setDevice() : cudaSetDevice()");
+				CHECK_CUDA_ERROR(err);
 			}
 			avDeviceIndex_t ContextDescriptor::getDevice() const noexcept
 			{

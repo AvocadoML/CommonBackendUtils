@@ -38,11 +38,11 @@ namespace avocado
 			typedef struct
 			{
 					av_uint16 data;
-			} bfloat16;
+			} av_bfloat16;
 			typedef struct
 			{
 					av_uint16 data;
-			} float16;
+			} av_float16;
 			typedef float av_float32;
 			typedef double av_float64;
 			typedef struct

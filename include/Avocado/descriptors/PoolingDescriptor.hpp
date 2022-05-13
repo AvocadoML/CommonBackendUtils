@@ -36,8 +36,13 @@ namespace avocado
 					static void destroy(avPoolingDescriptor_t desc);
 					static PoolingDescriptor& getObject(avPoolingDescriptor_t desc);
 					static bool isValid(avPoolingDescriptor_t desc);
-
 			};
+
+			inline PoolingDescriptor& getPooling(avPoolingDescriptor_t desc)
+			{
+				return PoolingDescriptor::getObject(desc);
+			}
+
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */
 } /* namespace avocado */

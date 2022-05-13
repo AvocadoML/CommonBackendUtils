@@ -17,7 +17,7 @@
 #  include <cuda_fp16.h>
 #  include <cublas_v2.h>
 #elif defined(OPENCL_BACKEND)
-#  include <CL/cl.hpp>
+#  include <CL/cl2.hpp>
 #else
 #endif
 
@@ -32,22 +32,19 @@ namespace avocado
 
 			MemoryDescriptor::MemoryDescriptor(av_int64 sizeInBytes, avDeviceIndex_t deviceIndex)
 			{
-//				std::cout << device_type() << " : creating memory of size " << sizeInBytes << ", " << this << '\n';
 				if (sizeInBytes > 0)
 				{
 #if defined(CUDA_BACKEND)
 					cudaError_t err = cudaSetDevice(deviceIndex);
-					CHECK_CUDA_ERROR(err, "MemoryDescriptor::create() : cudaSetDevice()");
+					CHECK_CUDA_ERROR(err);
 					err = cudaMalloc(reinterpret_cast<void**>(&m_data), sizeInBytes);
-					CHECK_CUDA_ERROR(err, "MemoryDescriptor::create() : cudaMalloc()");
+					CHECK_CUDA_ERROR(err);
 #elif defined(OPENCL_BACKEND)
 
 #else
 					m_data = new int8_t[sizeInBytes];
 #endif
 				}
-				else
-					m_data = nullptr;
 				m_device_index = 0;
 				m_offset = 0;
 				m_size = sizeInBytes;
@@ -55,15 +52,13 @@ namespace avocado
 			}
 			MemoryDescriptor::MemoryDescriptor(const MemoryDescriptor &other, av_int64 sizeInBytes, av_int64 offsetInBytes)
 			{
-//				std::cout << device_type() << " : creating memory view " << this << "\n";
 				if (other.m_is_owning == false)
 					throw std::logic_error("cannot create memory view from non-owning memory descriptor");
 				if (other.m_size < offsetInBytes + sizeInBytes)
 					throw std::logic_error(
 							"the view would extend beyond the original tensor : " + std::to_string(other.m_size) + " < "
 									+ std::to_string(offsetInBytes) + "+" + std::to_string(sizeInBytes));
-#if defined(OPENCL_BACKEND)
-#else
+#ifndef OPENCL_BACKEND
 				m_data = other.m_data;
 #endif
 				m_device_index = other.m_device_index;
@@ -72,14 +67,15 @@ namespace avocado
 				m_is_owning = false;
 			}
 			MemoryDescriptor::MemoryDescriptor(MemoryDescriptor &&other) :
+#ifndef OPENCL_BACKEND
 					m_data(other.m_data),
+#endif
 					m_device_index(other.m_device_index),
 					m_size(other.m_size),
 					m_offset(other.m_offset),
 					m_is_owning(other.m_is_owning)
 			{
-#if defined(OPENCL_BACKEND)
-#else
+#ifndef OPENCL_BACKEND
 				other.m_data = nullptr;
 #endif
 				other.m_device_index = AVOCADO_INVALID_DEVICE_INDEX;
@@ -89,8 +85,7 @@ namespace avocado
 			}
 			MemoryDescriptor& MemoryDescriptor::operator=(MemoryDescriptor &&other)
 			{
-#if defined(OPENCL_BACKEND)
-#else
+#ifndef OPENCL_BACKEND
 				std::swap(this->m_data, other.m_data);
 #endif
 				std::swap(this->m_device_index, other.m_device_index);
@@ -101,21 +96,20 @@ namespace avocado
 			}
 			MemoryDescriptor::~MemoryDescriptor()
 			{
-//				std::cout << device_type() << " : destroying memory, " << m_is_owning << ", " << this << '\n';
+#ifndef OPENCL_BACKEND
 				if (m_data != nullptr)
 				{
 					if (m_is_owning)
 					{
-#if defined(CUDA_BACKEND)
+#  if defined(CUDA_BACKEND)
 						cudaError_t err = cudaFree(m_data);
-						CHECK_CUDA_ERROR(err, "MemoryDescriptor::destroy() : cudaFree()");
-#elif defined(OPENCL_BACKEND)
-#else
+						CHECK_CUDA_ERROR(err);
 						delete[] m_data;
-#endif
+#  endif
 					}
 					m_data = nullptr;
 				}
+#endif
 				m_device_index = AVOCADO_INVALID_DEVICE_INDEX;
 				m_size = 0;
 				m_offset = 0;

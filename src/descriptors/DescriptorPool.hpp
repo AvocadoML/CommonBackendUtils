@@ -13,7 +13,6 @@
 
 #include <vector>
 #include <mutex>
-#include <shared_mutex>
 #include <algorithm>
 #include <iostream>
 
@@ -29,7 +28,7 @@ namespace avocado
 					T m_null_descriptor;
 					std::vector<T> m_pool;
 					std::vector<int> m_available_descriptors;
-					mutable std::shared_mutex m_pool_mutex;
+					mutable std::mutex m_pool_mutex;
 				public:
 					DescriptorPool(size_t initialSize = 10, int numRestricted = 0)
 					{
@@ -58,13 +57,13 @@ namespace avocado
 					 */
 					bool isValid(int64_t desc) const noexcept
 					{
-						std::shared_lock lock(m_pool_mutex);
+						std::lock_guard<std::mutex> lock(m_pool_mutex);
 						return check_validity(desc) == 0;
 					}
 
 					T& get(av_int64 desc)
 					{
-						std::shared_lock lock(m_pool_mutex);
+						std::lock_guard<std::mutex> lock(m_pool_mutex);
 						if (desc == AVOCADO_NULL_DESCRIPTOR)
 							return m_null_descriptor;
 						else
@@ -77,7 +76,7 @@ namespace avocado
 					template<typename ... Args>
 					av_int64 create(Args &&... args)
 					{
-						std::unique_lock lock(m_pool_mutex);
+						std::lock_guard<std::mutex> lock(m_pool_mutex);
 
 						int index;
 						if (m_available_descriptors.size() > 0)
@@ -97,7 +96,7 @@ namespace avocado
 					}
 					void destroy(av_int64 desc)
 					{
-						std::unique_lock lock(m_pool_mutex);
+						std::lock_guard<std::mutex> lock(m_pool_mutex);
 						validate_descriptor(desc);
 						int index = getDescriptorIndex(desc);
 						try

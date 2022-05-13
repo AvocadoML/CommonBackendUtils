@@ -31,6 +31,8 @@ namespace avocado
 		namespace BACKEND_NAMESPACE
 		{
 
+			bool isDefault(avContextDescriptor_t desc) noexcept;
+
 			class ContextDescriptor
 			{
 #if defined(CPU_BACKEND)
@@ -72,6 +74,11 @@ namespace avocado
 					cublasHandle_t getHandle() const noexcept;
 #endif
 			};
+
+			inline ContextDescriptor& getContext(avContextDescriptor_t desc)
+			{
+				return ContextDescriptor::getObject(desc);
+			}
 
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */

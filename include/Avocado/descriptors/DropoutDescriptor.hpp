@@ -31,8 +31,13 @@ namespace avocado
 					static void destroy(avDropoutDescriptor_t desc);
 					static DropoutDescriptor& getObject(avDropoutDescriptor_t desc);
 					static bool isValid(avDropoutDescriptor_t desc);
-
 			};
+
+			inline DropoutDescriptor& getDropout(avDropoutDescriptor_t desc)
+			{
+				return DropoutDescriptor::getObject(desc);
+			}
+
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */
 } /* namespace avocado */

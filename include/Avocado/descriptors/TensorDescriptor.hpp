@@ -48,6 +48,7 @@ namespace avocado
 					int& operator[](int index);
 					int operator[](int index) const;
 					int dimension(int index) const;
+					int stride(int index) const;
 					int nbDims() const noexcept;
 					av_int64 sizeInBytes() const noexcept;
 					int getIndex(std::initializer_list<int> indices) const noexcept;
@@ -71,6 +72,12 @@ namespace avocado
 			bool isBroadcastPossible(const TensorDescriptor &lhs, const TensorDescriptor &rhs) noexcept;
 			int volume(const BroadcastedDimensions &dims) noexcept;
 			BroadcastedDimensions getBroadcastDimensions(const TensorDescriptor &lhs, const TensorDescriptor &rhs) noexcept;
+
+			inline TensorDescriptor& getTensor(avTensorDescriptor_t desc)
+			{
+				return TensorDescriptor::getObject(desc);
+			}
+
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */
 } /* namespace avocado */

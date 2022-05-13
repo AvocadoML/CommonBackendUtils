@@ -65,6 +65,11 @@ namespace avocado
 					std::string toString() const;
 			};
 
+			inline ConvolutionDescriptor& getConvolution(avConvolutionDescriptor_t desc)
+			{
+				return ConvolutionDescriptor::getObject(desc);
+			}
+
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */
 } /* namespace avocado */

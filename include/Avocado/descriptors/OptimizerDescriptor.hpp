@@ -45,6 +45,12 @@ namespace avocado
 					void get(avOptimizerType_t *optimizerType, av_int64 *steps, double *learningRate, double coefficients[], bool flags[]);
 					void get_workspace_size(av_int64 *result, const TensorDescriptor &wDesc) const;
 			};
+
+			inline OptimizerDescriptor& getOptimizer(avOptimizerDescriptor_t desc)
+			{
+				return OptimizerDescriptor::getObject(desc);
+			}
+
 		} /* BACKEND_NAMESPACE */
 	} /* namespace backend */
 } /* namespace avocado */

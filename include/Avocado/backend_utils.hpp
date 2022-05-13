@@ -18,6 +18,8 @@
 #  define BACKEND_NAMESPACE cpu
 #elif defined(CUDA_BACKEND)
 #  define BACKEND_NAMESPACE cuda
+#  include <cuda_runtime_api.h>
+#  include <cublas_v2.h>
 #elif defined(OPENCL_BACKEND)
 #  define BACKEND_NAMESPACE opencl
 #else
@@ -88,6 +90,17 @@ namespace avocado
 			template<>
 			av_complex64 getBetaValue<av_complex64>(const void *beta) noexcept;
 
+#ifdef CUDA_BACKEND
+			template<>
+			cuComplex getAlphaValue<cuComplex>(const void *alpha) noexcept;
+			template<>
+			cuComplex getBetaValue<cuComplex>(const void *beta) noexcept;
+			template<>
+			cuDoubleComplex getAlphaValue<cuDoubleComplex>(const void *alpha) noexcept;
+			template<>
+			cuDoubleComplex getBetaValue<cuDoubleComplex>(const void *beta) noexcept;
+#endif
+
 			struct BroadcastedDimensions
 			{
 					int first;
@@ -102,18 +115,18 @@ namespace avocado
 			template<typename T, typename U>
 			bool same_device_type(T lhs, U rhs)
 			{
-				return get_device_type(lhs) == get_device_type(rhs);
+				return getDeviceType(lhs) == getDeviceType(rhs);
 			}
 			template<typename T, typename U, typename ... ARGS>
 			bool same_device_type(T lhs, U rhs, ARGS ... args)
 			{
-				if (get_device_type(lhs) == get_device_type(rhs))
+				if (getDeviceType(lhs) == getDeviceType(rhs))
 					return same_device_type(lhs, args...);
 				else
 					return false;
 			}
 
-			class InvalidDescriptorError: std::logic_error
+			class InvalidDescriptorError: public std::logic_error
 			{
 				public:
 					InvalidDescriptorError(const std::string &msg) :
@@ -121,7 +134,7 @@ namespace avocado
 					{
 					}
 			};
-			class DeallocationError: std::runtime_error
+			class DeallocationError: public std::runtime_error
 			{
 				public:
 					DeallocationError(const std::string &msg) :
@@ -158,6 +171,18 @@ namespace avocado
 #  define REPORT_ERROR(status, message) reportError((status), __FUNCTION__, (message))
 #endif
 
+#ifdef CUDA_BACKEND
+			std::runtime_error cuda_runtime_error_creator(const char* methodName, cudaError_t status);
+			std::runtime_error cublas_runtime_error_creator(const char* methodName, cublasStatus_t status);
+#  ifdef __GNUC__
+#    define CHECK_CUDA_ERROR(status) if (status != cudaSuccess) throw cuda_runtime_error_creator(__PRETTY_FUNCTION__, status)
+#    define CHECK_CUBLAS_STATUS(status) if (status != cudaSuccess) throw cublas_runtime_error_creator(__PRETTY_FUNCTION__, status)
+#  else
+#    define CHECK_CUDA_ERROR(status) if (status != cudaSuccess) throw cuda_runtime_error_creator(__FUNCTION__, status)
+#    define CHECK_CUBLAS_STATUS(status) if (status != cudaSuccess) throw cublas_runtime_error_creator(__FUNCTION__, status)
+#  endif
+#endif
+
 			template<typename T, typename U, typename ... Args>
 			avStatus_t create_descriptor(U *result, Args &&... args)
 			{
@@ -173,7 +198,7 @@ namespace avocado
 				}
 			}
 			template<typename T, typename U>
-			avStatus_t destroy_descriptor(T desc)
+			avStatus_t destroy_descriptor(U desc)
 			{
 				try
 				{

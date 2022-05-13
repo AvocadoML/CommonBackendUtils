@@ -6,13 +6,7 @@
  */
 
 #include <Avocado/backend_utils.hpp>
-#include <Avocado/descriptors/ContextDescriptor.hpp>
-#include <Avocado/descriptors/ConvolutionDescriptor.hpp>
-#include <Avocado/descriptors/DropoutDescriptor.hpp>
-#include <Avocado/descriptors/MemoryDescriptor.hpp>
-#include <Avocado/descriptors/OptimizerDescriptor.hpp>
-#include <Avocado/descriptors/PoolingDescriptor.hpp>
-#include <Avocado/descriptors/TensorDescriptor.hpp>
+#include <Avocado/backend_descriptors.hpp>
 
 #include <algorithm>
 
@@ -22,7 +16,7 @@
 #  include <cuda_fp16.h>
 #  include <cublas_v2.h>
 #elif defined(OPENCL_BACKEND)
-#  include <CL/cl.hpp>
+#  include <CL/cl2.hpp>
 #else
 #endif
 
@@ -159,10 +153,7 @@ namespace avocado
 				{
 					int tmp = 0;
 					cudaError_t status = cudaGetDeviceCount(&tmp);
-					if (status != cudaSuccess)
-						return 0;
-					else
-						return tmp;
+					return (status == cudaSuccess) ? tmp : 0;
 				}();
 #elif defined(OPENCL_BACKEND)
 				static const int result = 0;
@@ -207,11 +198,8 @@ namespace avocado
 			{
 #if defined(CUDA_BACKEND)
 				int tmp = 0;
-				cudaError_t status = cudaGetCurrentDevice(&tmp);
-				if (status != cudaSuccess)
-					return 0;
-				else
-					return tmp;
+				cudaError_t status = cudaGetDevice(&tmp);
+				return (status == cudaSuccess) ? tmp : 0;
 #elif defined(OPENCL_BACKEND)
 				return 0;
 #else
@@ -221,8 +209,8 @@ namespace avocado
 
 			av_int64 createDescriptor(int index, av_int64 type) noexcept
 			{
-				return (static_cast<av_int64>(getCurrentDeviceType()) << 56ull) | (type << 48ull)
-						| (static_cast<av_int64>(getCurrentDeviceIndex()) << 32ull) | static_cast<av_int64>(index);
+				return (static_cast<av_int64>(getCurrentDeviceType()) << 56ull) | (type << 48ull) | (static_cast<av_int64>(getCurrentDeviceIndex()) << 32ull)
+						| static_cast<av_int64>(index);
 			}
 
 			int dataTypeSize(avDataType_t dtype) noexcept
@@ -256,6 +244,74 @@ namespace avocado
 						return 16;
 				}
 			}
+
+			template<>
+			av_complex32 getAlphaValue<av_complex32>(const void *alpha) noexcept
+			{
+				if (alpha == nullptr)
+					return av_complex32 { 1.0f, 0.0f };
+				else
+					return reinterpret_cast<const av_complex32*>(alpha)[0];
+			}
+			template<>
+			av_complex32 getBetaValue<av_complex32>(const void *beta) noexcept
+			{
+				if (beta == nullptr)
+					return av_complex32 { 0.0f, 0.0f };
+				else
+					return reinterpret_cast<const av_complex32*>(beta)[0];
+			}
+			template<>
+			av_complex64 getAlphaValue<av_complex64>(const void *alpha) noexcept
+			{
+				if (alpha == nullptr)
+					return av_complex64 { 1.0, 0.0 };
+				else
+					return reinterpret_cast<const av_complex64*>(alpha)[0];
+			}
+			template<>
+			av_complex64 getBetaValue<av_complex64>(const void *beta) noexcept
+			{
+				if (beta == nullptr)
+					return av_complex64 { 0.0, 0.0 };
+				else
+					return reinterpret_cast<const av_complex64*>(beta)[0];
+			}
+
+#ifdef CUDA_BACKEND
+			template<>
+			cuComplex getAlphaValue<cuComplex>(const void *alpha) noexcept
+			{
+				if (alpha == nullptr)
+					return cuComplex { 1.0f, 0.0f };
+				else
+					return reinterpret_cast<const cuComplex*>(alpha)[0];
+			}
+			template<>
+			cuComplex getBetaValue<cuComplex>(const void *beta) noexcept
+			{
+				if (beta == nullptr)
+					return cuComplex { 0.0f, 0.0f };
+				else
+					return reinterpret_cast<const cuComplex*>(beta)[0];
+			}
+			template<>
+			cuDoubleComplex getAlphaValue<cuDoubleComplex>(const void *alpha) noexcept
+			{
+				if (alpha == nullptr)
+					return double2 { 1.0, 0.0 };
+				else
+					return reinterpret_cast<const cuDoubleComplex*>(alpha)[0];
+			}
+			template<>
+			cuDoubleComplex getBetaValue<cuDoubleComplex>(const void *beta) noexcept
+			{
+				if (beta == nullptr)
+					return cuDoubleComplex { 0.0, 0.0 };
+				else
+					return reinterpret_cast<const cuDoubleComplex*>(beta)[0];
+			}
+#endif
 
 			bool is_transpose(avGemmOperation_t op) noexcept
 			{
@@ -298,6 +354,49 @@ namespace avocado
 				last_error = ErrorDescription { status, std::string(method), msg };
 				return status;
 			}
+
+#ifdef CUDA_BACKEND
+			static const char* decode_cublas_status(cublasStatus_t status)
+			{
+				switch (status)
+				{
+					case CUBLAS_STATUS_SUCCESS:
+						return "CUBLAS_STATUS_SUCCESS";
+					case CUBLAS_STATUS_NOT_INITIALIZED:
+						return "CUBLAS_STATUS_NOT_INITIALIZED";
+					case CUBLAS_STATUS_ALLOC_FAILED:
+						return "CUBLAS_STATUS_ALLOC_FAILED";
+					case CUBLAS_STATUS_INVALID_VALUE:
+						return "CUBLAS_STATUS_INVALID_VALUE";
+					case CUBLAS_STATUS_ARCH_MISMATCH:
+						return "CUBLAS_STATUS_ARCH_MISMATCH";
+					case CUBLAS_STATUS_MAPPING_ERROR:
+						return "CUBLAS_STATUS_MAPPING_ERROR";
+					case CUBLAS_STATUS_EXECUTION_FAILED:
+						return "CUBLAS_STATUS_EXECUTION_FAILED";
+					case CUBLAS_STATUS_INTERNAL_ERROR:
+						return "CUBLAS_STATUS_INTERNAL_ERROR";
+					case CUBLAS_STATUS_NOT_SUPPORTED:
+						return "CUBLAS_STATUS_NOT_SUPPORTED";
+					case CUBLAS_STATUS_LICENSE_ERROR:
+						return "CUBLAS_STATUS_LICENSE_ERROR";
+					default:
+						return "unknown status";
+				}
+			}
+			std::runtime_error cuda_runtime_error_creator(const char* methodName, cudaError_t status)
+			{
+				std::string msg(methodName);
+				msg += std::string(" : ") + cudaGetErrorName(status) + " (" + cudaGetErrorString(status);
+				return std::runtime_error(msg);
+			}
+			std::runtime_error cublas_runtime_error_creator(const char* methodName, cublasStatus_t status)
+			{
+				std::string msg(methodName);
+				msg += std::string(" : ") + decode_cublas_status(status);
+				return std::runtime_error(msg);
+			}
+#endif
 		}
 	} /* namespace backend */
 } /* namespace avocado */
