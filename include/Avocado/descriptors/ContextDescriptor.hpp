@@ -45,15 +45,16 @@ namespace avocado
 					avDeviceIndex_t m_device_index = AVOCADO_INVALID_DEVICE_INDEX;
 					mutable MemoryDescriptor m_workspace;
 					mutable av_int64 m_workspace_size = 0;
+					bool m_is_synchronized = true;
 				public:
 					static constexpr av_int64 descriptor_type = 2;
 					static constexpr bool must_check_device_index = true;
 
 					ContextDescriptor() = default;
 #if defined(CUDA_BACKEND)
-					ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultStream = false);
+					ContextDescriptor(avDeviceIndex_t deviceIndex, bool isSynchronized = true, bool useDefaultStream = false);
 #elif defined(OPENCL_BACKEND)
-					ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultCommandQueue);
+					ContextDescriptor(avDeviceIndex_t deviceIndex, bool isSynchronized = true, bool useDefaultCommandQueue = false);
 #endif
 					ContextDescriptor(const ContextDescriptor &other) = delete;
 					ContextDescriptor(ContextDescriptor &&other);
@@ -66,6 +67,8 @@ namespace avocado
 					static ContextDescriptor& getObject(avContextDescriptor_t desc);
 					static bool isValid(avContextDescriptor_t desc);
 
+					void synchronize();
+					bool isSynchronized() const noexcept;
 					MemoryDescriptor& getWorkspace() const;
 #ifdef CUDA_BACKEND
 					void setDevice() const;
