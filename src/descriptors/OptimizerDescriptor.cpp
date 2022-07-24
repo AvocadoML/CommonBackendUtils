@@ -11,15 +11,23 @@
 #include <cstring>
 #include <algorithm>
 
+namespace
+{
+	using namespace avocado::backend::BACKEND_NAMESPACE;
+
+	DescriptorPool<OptimizerDescriptor>& get_descriptor_pool()
+	{
+		static DescriptorPool<OptimizerDescriptor> pool;
+		return pool;
+	}
+}
+
 namespace avocado
 {
 	namespace backend
 	{
 		namespace BACKEND_NAMESPACE
 		{
-
-			static DescriptorPool<OptimizerDescriptor> optimizer_descriptor_pool;
-
 			OptimizerDescriptor::OptimizerDescriptor() noexcept :
 					type(AVOCADO_OPTIMIZER_SGD),
 					learning_rate(0.0)
@@ -33,19 +41,19 @@ namespace avocado
 			}
 			avOptimizerDescriptor_t OptimizerDescriptor::create()
 			{
-				return optimizer_descriptor_pool.create();
+				return get_descriptor_pool().create();
 			}
 			void OptimizerDescriptor::destroy(avOptimizerDescriptor_t desc)
 			{
-				optimizer_descriptor_pool.destroy(desc);
+				get_descriptor_pool().destroy(desc);
 			}
 			OptimizerDescriptor& OptimizerDescriptor::getObject(avOptimizerDescriptor_t desc)
 			{
-				return optimizer_descriptor_pool.get(desc);
+				return get_descriptor_pool().get(desc);
 			}
 			bool OptimizerDescriptor::isValid(avOptimizerDescriptor_t desc)
 			{
-				return optimizer_descriptor_pool.isValid(desc);
+				return get_descriptor_pool().isValid(desc);
 			}
 			void OptimizerDescriptor::set(avOptimizerType_t optimizerType, av_int64 steps, double learningRate, const double coefficients[],
 					const bool flags[])

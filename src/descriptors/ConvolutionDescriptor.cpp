@@ -11,15 +11,23 @@
 #include <stdexcept>
 #include <algorithm>
 
+namespace
+{
+	using namespace avocado::backend::BACKEND_NAMESPACE;
+
+	DescriptorPool<ConvolutionDescriptor>& get_descriptor_pool()
+	{
+		static DescriptorPool<ConvolutionDescriptor> pool;
+		return pool;
+	}
+}
+
 namespace avocado
 {
 	namespace backend
 	{
 		namespace BACKEND_NAMESPACE
 		{
-
-			static DescriptorPool<ConvolutionDescriptor> convolution_descriptor_pool;
-
 			ConvolutionDescriptor::ConvolutionDescriptor() noexcept
 			{
 				padding.fill(0);
@@ -34,19 +42,19 @@ namespace avocado
 			}
 			avConvolutionDescriptor_t ConvolutionDescriptor::create()
 			{
-				return convolution_descriptor_pool.create();
+				return get_descriptor_pool().create();
 			}
 			void ConvolutionDescriptor::destroy(avConvolutionDescriptor_t desc)
 			{
-				convolution_descriptor_pool.destroy(desc);
+				get_descriptor_pool().destroy(desc);
 			}
 			ConvolutionDescriptor& ConvolutionDescriptor::getObject(avConvolutionDescriptor_t desc)
 			{
-				return convolution_descriptor_pool.get(desc);
+				return get_descriptor_pool().get(desc);
 			}
 			bool ConvolutionDescriptor::isValid(avConvolutionDescriptor_t desc)
 			{
-				return convolution_descriptor_pool.isValid(desc);
+				return get_descriptor_pool().isValid(desc);
 			}
 			void ConvolutionDescriptor::set(avConvolutionMode_t mode, int nbDims, const int padding[], const int strides[], const int dilation[],
 					int groups, const void *paddingValue)

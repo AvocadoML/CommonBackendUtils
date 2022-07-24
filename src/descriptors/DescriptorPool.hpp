@@ -114,21 +114,24 @@ namespace avocado
 						switch (check_validity(desc))
 						{
 							case -1:
-								throw InvalidDescriptorError(
-										"descriptor type mismatch, expected " + T::className() + ", got " + descriptorTypeToString(desc));
+								throw InvalidDescriptorError("descriptor has negative value (" + std::to_string(desc) + ")");
 							case -2:
+								throw InvalidDescriptorError(
+										"descriptor type mismatch, expected " + T::className() + " (" + std::to_string(T::descriptor_type) + "), got "
+												+ descriptorTypeToString(desc));
+							case -3:
 								throw InvalidDescriptorError(
 										"device type mismatch, expected " + deviceTypeToString(getCurrentDeviceType()) + ", got "
 												+ deviceTypeToString(getDeviceType(desc)));
-							case -3:
+							case -4:
 								throw InvalidDescriptorError(
 										"device index mismatch, expected " + std::to_string(getCurrentDeviceIndex()) + ", got "
 												+ std::to_string(getDeviceIndex(desc)));
-							case -4:
+							case -5:
 								throw InvalidDescriptorError(
 										"descriptor index " + std::to_string(getDescriptorIndex(desc)) + " out of range [0,"
 												+ std::to_string(m_pool.size()) + ")");
-							case -5:
+							case -6:
 								throw InvalidDescriptorError("descriptor is not used");
 						}
 					}
@@ -136,18 +139,20 @@ namespace avocado
 					{
 						if (desc == AVOCADO_NULL_DESCRIPTOR)
 							return 0; // null descriptor is valid
+						if (desc < 0)
+							return -1; // totally invalid descriptor
 						if (T::descriptor_type != getDescriptorType(desc))
-							return -1; // descriptor type mismatch
+							return -2; // descriptor type mismatch
 						if (getCurrentDeviceType() != getDeviceType(desc))
-							return -2; // device type mismatch
+							return -3; // device type mismatch
 						if (T::must_check_device_index and getCurrentDeviceIndex() != getDeviceIndex(desc))
-							return -3; // device index mismatch
+							return -4; // device index mismatch
 
 						int index = getDescriptorIndex(desc);
 						if (index < 0 or index > static_cast<int>(m_pool.size()))
-							return -4; // descriptor index out of range
+							return -5; // descriptor index out of range
 						if (std::find(m_available_descriptors.begin(), m_available_descriptors.end(), index) != m_available_descriptors.end())
-							return -5; // descriptor not in use
+							return -6; // descriptor not in use
 						return 0;
 					}
 			};

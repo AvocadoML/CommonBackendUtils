@@ -43,6 +43,16 @@ namespace
 		}
 	}
 
+	DescriptorPool<ContextDescriptor>& get_descriptor_pool()
+	{
+		static DescriptorPool<ContextDescriptor> pool;
+		return pool;
+	}
+	DescriptorPool<ContextDescriptor>& get_default_descriptor_pool()
+	{
+		thread_local DescriptorPool<ContextDescriptor> pool = create_default_pool();
+		return pool;
+	}
 }
 
 namespace avocado
@@ -52,9 +62,6 @@ namespace avocado
 		namespace BACKEND_NAMESPACE
 		{
 
-			static DescriptorPool<ContextDescriptor> context_descriptor_pool;
-			thread_local DescriptorPool<ContextDescriptor> default_context_descriptor_pool = create_default_pool();
-
 			bool isDefault(avContextDescriptor_t desc) noexcept
 			{
 				const int idx = getDescriptorIndex(desc);
@@ -62,8 +69,9 @@ namespace avocado
 			}
 
 #if defined(CUDA_BACKEND)
-			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultStream) :
-					m_device_index(deviceIndex)
+			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool isSynchronized, bool useDefaultStream) :
+					m_device_index(deviceIndex),
+					m_is_synchronized(isSynchronized or useDefaultStream)
 			{
 				cudaError_t err = cudaSetDevice(deviceIndex);
 				CHECK_CUDA_ERROR(err);
@@ -81,17 +89,22 @@ namespace avocado
 				CHECK_CUBLAS_STATUS(status);
 			}
 #elif defined(OPENCL_BACKEND)
-			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool useDefaultCommandQueue):
-			m_device_index(deviceIndex)
+			ContextDescriptor::ContextDescriptor(avDeviceIndex_t deviceIndex, bool isSynchronized, bool useDefaultCommandQueue):
+					m_device_index(deviceIndex),
+					m_is_synchronized(isSynchronized or useDefaultStream)
 			{
 			}
 #endif
 			ContextDescriptor::ContextDescriptor(ContextDescriptor &&other) :
 #if defined(CUDA_BACKEND)
-							m_stream(other.m_stream), m_handle(other.m_handle),
+					m_stream(other.m_stream),
+					m_handle(other.m_handle),
 #elif defined(OPENCL_BACKEND)
 #endif
-							m_device_index(other.m_device_index), m_workspace(std::move(other.m_workspace)), m_workspace_size(other.m_workspace_size)
+					m_device_index(other.m_device_index),
+					m_workspace(std::move(other.m_workspace)),
+					m_workspace_size(other.m_workspace_size),
+					m_is_synchronized(other.m_is_synchronized)
 			{
 #if defined(CUDA_BACKEND)
 				other.m_stream = nullptr;
@@ -112,6 +125,7 @@ namespace avocado
 				std::swap(this->m_device_index, other.m_device_index);
 				std::swap(this->m_workspace, other.m_workspace);
 				std::swap(this->m_workspace_size, other.m_workspace_size);
+				std::swap(this->m_is_synchronized, other.m_is_synchronized);
 				return *this;
 			}
 			ContextDescriptor::~ContextDescriptor()
@@ -142,9 +156,9 @@ namespace avocado
 			avContextDescriptor_t ContextDescriptor::create(avDeviceIndex_t deviceIndex)
 			{
 #if defined(CUDA_BACKEND) or defined(OPENCL_BACKEND)
-				return context_descriptor_pool.create(deviceIndex, false);
+				return get_descriptor_pool().create(deviceIndex, false);
 #else
-				return context_descriptor_pool.create();
+				return get_descriptor_pool().create();
 #endif
 			}
 			void ContextDescriptor::destroy(avContextDescriptor_t desc)
@@ -152,23 +166,34 @@ namespace avocado
 				if (isDefault(desc))
 					throw std::logic_error("Default context descriptor cannot be destroyed");
 				else
-					context_descriptor_pool.destroy(desc);
+					get_descriptor_pool().destroy(desc);
 			}
 			ContextDescriptor& ContextDescriptor::getObject(avContextDescriptor_t desc)
 			{
 				if (isDefault(desc))
-					return default_context_descriptor_pool.get(desc);
+					return get_default_descriptor_pool().get(desc);
 				else
-					return context_descriptor_pool.get(desc);
+					return get_descriptor_pool().get(desc);
 			}
 			bool ContextDescriptor::isValid(avContextDescriptor_t desc)
 			{
 				if (isDefault(desc))
-					return default_context_descriptor_pool.isValid(desc);
+					return get_default_descriptor_pool().isValid(desc);
 				else
-					return context_descriptor_pool.isValid(desc);
+					return get_descriptor_pool().isValid(desc);
 			}
 
+			void ContextDescriptor::synchronize()
+			{
+#ifdef CUDA_BACKEND
+				cudaError_t err = cudaStreamSynchronize(m_stream);
+				CHECK_CUDA_ERROR(err);
+#endif
+			}
+			bool ContextDescriptor::isSynchronized() const noexcept
+			{
+				return m_is_synchronized;
+			}
 			MemoryDescriptor& ContextDescriptor::getWorkspace() const
 			{
 				if (m_workspace.isNull())

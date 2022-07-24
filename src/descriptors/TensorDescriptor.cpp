@@ -14,6 +14,8 @@
 namespace
 {
 	using namespace avocado::backend;
+	using namespace avocado::backend::BACKEND_NAMESPACE;
+	;
 	template<typename T>
 	std::array<int, AVOCADO_MAX_TENSOR_DIMENSIONS> get_shape(T begin, T end)
 	{
@@ -36,6 +38,12 @@ namespace
 		}
 		return result;
 	}
+
+	DescriptorPool<TensorDescriptor>& get_descriptor_pool()
+	{
+		static DescriptorPool<TensorDescriptor> pool;
+		return pool;
+	}
 }
 
 namespace avocado
@@ -44,8 +52,6 @@ namespace avocado
 	{
 		namespace BACKEND_NAMESPACE
 		{
-
-			static DescriptorPool<TensorDescriptor> tensor_descriptor_pool;
 
 			TensorDescriptor::TensorDescriptor(std::initializer_list<int> dimensions, avDataType_t dtype) :
 					m_dimensions(get_shape(dimensions.begin(), dimensions.end())),
@@ -68,24 +74,24 @@ namespace avocado
 
 			avTensorDescriptor_t TensorDescriptor::create(std::initializer_list<int> dimensions, avDataType_t dtype)
 			{
-				return tensor_descriptor_pool.create(dimensions, dtype);
+				return get_descriptor_pool().create(dimensions, dtype);
 			}
 			avTensorDescriptor_t TensorDescriptor::create(std::initializer_list<int> dimensions, std::initializer_list<int> strides,
 					avDataType_t dtype)
 			{
-				return tensor_descriptor_pool.create(dimensions, strides, dtype);
+				return get_descriptor_pool().create(dimensions, strides, dtype);
 			}
 			void TensorDescriptor::destroy(avTensorDescriptor_t desc)
 			{
-				tensor_descriptor_pool.destroy(desc);
+				get_descriptor_pool().destroy(desc);
 			}
 			TensorDescriptor& TensorDescriptor::getObject(avTensorDescriptor_t desc)
 			{
-				return tensor_descriptor_pool.get(desc);
+				return get_descriptor_pool().get(desc);
 			}
 			bool TensorDescriptor::isValid(avTensorDescriptor_t desc)
 			{
-				return tensor_descriptor_pool.isValid(desc);
+				return get_descriptor_pool().isValid(desc);
 			}
 			void TensorDescriptor::set(avDataType_t dtype, int nbDims, const int dimensions[])
 			{

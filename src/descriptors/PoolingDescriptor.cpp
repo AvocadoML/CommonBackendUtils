@@ -11,6 +11,17 @@
 #include <stdexcept>
 #include <algorithm>
 
+namespace
+{
+	using namespace avocado::backend::BACKEND_NAMESPACE;
+
+	DescriptorPool<PoolingDescriptor>& get_descriptor_pool()
+	{
+		static DescriptorPool<PoolingDescriptor> pool;
+		return pool;
+	}
+}
+
 namespace avocado
 {
 	namespace backend
@@ -18,27 +29,25 @@ namespace avocado
 		namespace BACKEND_NAMESPACE
 		{
 
-			static DescriptorPool<PoolingDescriptor> pooling_descriptor_pool;
-
 			std::string PoolingDescriptor::className()
 			{
 				return "PoolingDescriptor";
 			}
 			avPoolingDescriptor_t PoolingDescriptor::create()
 			{
-				return pooling_descriptor_pool.create();
+				return get_descriptor_pool().create();
 			}
 			void PoolingDescriptor::destroy(avPoolingDescriptor_t desc)
 			{
-				pooling_descriptor_pool.destroy(desc);
+				get_descriptor_pool().destroy(desc);
 			}
 			PoolingDescriptor& PoolingDescriptor::getObject(avPoolingDescriptor_t desc)
 			{
-				return pooling_descriptor_pool.get(desc);
+				return get_descriptor_pool().get(desc);
 			}
 			bool PoolingDescriptor::isValid(avPoolingDescriptor_t desc)
 			{
-				return pooling_descriptor_pool.isValid(desc);
+				return get_descriptor_pool().isValid(desc);
 			}
 
 		} /* BACKEND_NAMESPACE */

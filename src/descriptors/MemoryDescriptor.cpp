@@ -21,15 +21,23 @@
 #else
 #endif
 
+namespace
+{
+	using namespace avocado::backend::BACKEND_NAMESPACE;
+
+	DescriptorPool<MemoryDescriptor>& get_descriptor_pool()
+	{
+		static DescriptorPool<MemoryDescriptor> pool;
+		return pool;
+	}
+}
+
 namespace avocado
 {
 	namespace backend
 	{
 		namespace BACKEND_NAMESPACE
 		{
-
-			static DescriptorPool<MemoryDescriptor> memory_descriptor_pool;
-
 			MemoryDescriptor::MemoryDescriptor(av_int64 sizeInBytes, avDeviceIndex_t deviceIndex)
 			{
 				if (sizeInBytes > 0)
@@ -138,23 +146,23 @@ namespace avocado
 
 			avMemoryDescriptor_t MemoryDescriptor::create(av_int64 sizeInBytes, avDeviceIndex_t deviceIndex)
 			{
-				return memory_descriptor_pool.create(sizeInBytes, deviceIndex);
+				return get_descriptor_pool().create(sizeInBytes, deviceIndex);
 			}
 			avMemoryDescriptor_t MemoryDescriptor::create(const MemoryDescriptor &other, av_int64 sizeInBytes, av_int64 offsetInBytes)
 			{
-				return memory_descriptor_pool.create(other, sizeInBytes, offsetInBytes);
+				return get_descriptor_pool().create(other, sizeInBytes, offsetInBytes);
 			}
 			void MemoryDescriptor::destroy(avMemoryDescriptor_t desc)
 			{
-				memory_descriptor_pool.destroy(desc);
+				get_descriptor_pool().destroy(desc);
 			}
 			MemoryDescriptor& MemoryDescriptor::getObject(avMemoryDescriptor_t desc)
 			{
-				return memory_descriptor_pool.get(desc);
+				return get_descriptor_pool().get(desc);
 			}
 			bool MemoryDescriptor::isValid(avMemoryDescriptor_t desc)
 			{
-				return memory_descriptor_pool.isValid(desc);
+				return get_descriptor_pool().isValid(desc);
 			}
 
 		} /* BACKEND_NAMESPACE */
