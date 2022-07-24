@@ -131,6 +131,14 @@ namespace avocado
 				return m_data == nullptr;
 #endif
 			}
+			bool MemoryDescriptor::isOwning() const noexcept
+			{
+				return m_is_owning;
+			}
+			av_int64 MemoryDescriptor::offsetInBytes() const noexcept
+			{
+				return m_offset;
+			}
 			av_int64 MemoryDescriptor::sizeInBytes() const noexcept
 			{
 				return m_size;

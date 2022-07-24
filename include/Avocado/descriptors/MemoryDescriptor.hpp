@@ -49,6 +49,8 @@ namespace avocado
 					MemoryDescriptor& operator=(MemoryDescriptor &&other);
 					~MemoryDescriptor();
 					bool isNull() const noexcept;
+					bool isOwning() const noexcept;
+					av_int64 offsetInBytes() const noexcept;
 					av_int64 sizeInBytes() const noexcept;
 					avDeviceIndex_t device() const noexcept;
 					static std::string className();

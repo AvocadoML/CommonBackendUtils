@@ -12,6 +12,7 @@
 #include <Avocado/backend_utils.hpp>
 
 #include <vector>
+#include <memory>
 #include <mutex>
 #include <algorithm>
 #include <iostream>
@@ -26,7 +27,7 @@ namespace avocado
 			class DescriptorPool
 			{
 					T m_null_descriptor;
-					std::vector<T> m_pool;
+					std::vector<std::unique_ptr<T>> m_pool;
 					std::vector<int> m_available_descriptors;
 					mutable std::mutex m_pool_mutex;
 				public:
@@ -69,7 +70,7 @@ namespace avocado
 						else
 						{
 							validate_descriptor(desc);
-							return m_pool.at(getDescriptorIndex(desc));
+							return *m_pool.at(getDescriptorIndex(desc));
 						}
 					}
 
@@ -89,7 +90,10 @@ namespace avocado
 							m_pool.emplace_back();
 							index = m_pool.size() - 1;
 						}
-						m_pool.at(index) = T(std::forward<Args>(args)...);
+						if (m_pool.at(index) == nullptr)
+							m_pool.at(index) = std::make_unique<T>(std::forward<Args>(args)...);
+						else
+							*m_pool.at(index) = T(std::forward<Args>(args)...);
 
 						av_int64 descriptor = createDescriptor(index, T::descriptor_type);
 						return descriptor;
@@ -101,7 +105,7 @@ namespace avocado
 						int index = getDescriptorIndex(desc);
 						try
 						{
-							m_pool.at(index) = T();
+							*m_pool.at(index) = T();
 							m_available_descriptors.push_back(index);
 						} catch (std::exception &e)
 						{
@@ -148,7 +152,7 @@ namespace avocado
 						if (T::must_check_device_index and getCurrentDeviceIndex() != getDeviceIndex(desc))
 							return -4; // device index mismatch
 
-						int index = getDescriptorIndex(desc);
+						const int index = getDescriptorIndex(desc);
 						if (index < 0 or index > static_cast<int>(m_pool.size()))
 							return -5; // descriptor index out of range
 						if (std::find(m_available_descriptors.begin(), m_available_descriptors.end(), index) != m_available_descriptors.end())
